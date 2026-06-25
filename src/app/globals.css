@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #fafafa;
+  --color-bg-pure: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-soft: #f8fafc;
+  --color-surface-strong: #f1f5f9;
+  --color-surface-muted: #e2e8f0;
+
+  --color-text: #0f172a;
+  --color-text-body: #334155;
+  --color-text-muted: #64748b;
+  --color-text-soft: #94a3b8;
+  --color-text-on-dark: #ffffff;
+  --color-text-on-dark-muted: #cbd5e1;
+
+  --color-brand: #a600ff;
+  --color-brand-bright: #be4bff;
+  --color-brand-deep: #7d00c4;
+  --color-brand-soft: rgba(166, 0, 255, 0.08);
+
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-border-focus: #a600ff;
+
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+
+  --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
+
+  --animate-fade-up: fade-up 0.6s ease-out forwards;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: var(--color-brand-soft);
+  color: var(--color-text);
+}
+
+.section-container {
+  @apply mx-auto w-full max-w-[1280px] px-6 lg:px-10;
+}
+
+.display-hero {
+  @apply text-[clamp(2.25rem,5vw,3.75rem)] leading-[1.08] font-bold tracking-[-0.03em] text-text;
+}
+
+.display-md {
+  @apply text-[clamp(1.75rem,3.5vw,2.75rem)] leading-[1.12] font-bold tracking-[-0.02em] text-text;
+}
+
+.heading-section {
+  @apply text-[clamp(1.5rem,2.5vw,2rem)] leading-[1.2] font-semibold tracking-[-0.018em] text-text;
+}
+
+.body-lede {
+  @apply text-lg leading-relaxed text-text-body md:text-xl;
+}
+
+.card-surface {
+  @apply rounded-xl border border-border bg-surface shadow-sm transition-shadow duration-300 hover:shadow-md;
+}
+
+.field-input {
+  @apply w-full rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text transition-colors duration-200 placeholder:text-text-soft;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-brand-soft);
+}
+
+.field-label {
+  @apply mb-1.5 block text-sm font-medium text-text;
+}
+
+.prose-innomium {
+  @apply space-y-5 text-base leading-relaxed text-text-body;
+}
+
+.badge {
+  @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+}
+
+.badge-brand {
+  @apply bg-brand-soft text-brand-deep;
+}
+
+.badge-success {
+  @apply bg-emerald-50 text-emerald-700;
+}
+
+.badge-muted {
+  @apply bg-surface-strong text-text-muted;
+}
