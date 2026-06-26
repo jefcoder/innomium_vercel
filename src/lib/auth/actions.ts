@@ -32,10 +32,27 @@ export async function signInWithEmail(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (user) {
-    if (!user.user_metadata?.signup_completed) {
+    if (user.user_metadata?.signup_completed !== true) {
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!existingProfile) {
+        await supabase.auth.signOut();
+        return { error: authCopy.noAccountFound, needsSignup: true };
+      }
+
       await supabase.auth.updateUser({ data: { signup_completed: true } });
     }
+
     const profile = await ensureProfile(user);
+    if (!profile) {
+      await supabase.auth.signOut();
+      return { error: authCopy.noAccountFound, needsSignup: true };
+    }
+
     const home = redirectTo || homeForAccountType(normalizeAccountType(profile.account_type));
     redirect(home);
   }
@@ -122,4 +139,49 @@ export async function signUpWithGoogle(
 
   if (error || !data.url) return { error: authCopy.signupError };
   redirect(data.url);
+}
+
+export async function completeOnboarding(accountType: "client" | "talent_applicant") {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: authCopy.unauthorized };
+  }
+
+  const meta = user.user_metadata ?? {};
+
+  await supabase.auth.updateUser({
+    data: {
+      signup_completed: true,
+      account_type: accountType,
+      full_name: meta.full_name || meta.name || meta.display_name,
+      avatar_url: meta.avatar_url || meta.picture,
+    },
+  });
+
+  await supabase.from("profiles").upsert({
+    id: user.id,
+    account_type: accountType,
+    full_name: (meta.full_name || meta.name || null) as string | null,
+    display_name: (meta.display_name || meta.name || null) as string | null,
+    avatar_url: (meta.avatar_url || meta.picture || null) as string | null,
+  });
+
+  if (accountType === "client") {
+    await supabase.from("client_profiles").upsert({ user_id: user.id });
+  } else {
+    await supabase.from("talent_applications").upsert({ user_id: user.id });
+  }
+
+  const profile = await ensureProfile(user);
+  const home = homeForAccountType(normalizeAccountType(profile?.account_type ?? accountType));
+
+  if (accountType === "talent_applicant") {
+    redirect("/verify-email?next=/apply");
+  }
+
+  redirect(home);
 }

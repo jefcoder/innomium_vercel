@@ -102,6 +102,10 @@ export async function GET(request: Request) {
   }
 
   const profile = await ensureProfile(user);
+  if (!profile) {
+    return NextResponse.redirect(new URL("/signup?error=no_account", request.url));
+  }
+
   let path = next && next.startsWith("/") ? next : "/";
   if (!next) path = homeForAccountType(normalizeAccountType(profile.account_type));
 

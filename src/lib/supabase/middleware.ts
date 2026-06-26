@@ -5,13 +5,21 @@ import {
   homeForAccountType,
   normalizeAccountType,
 } from "@/lib/auth/routes";
+import { userNeedsOnboarding } from "@/lib/auth/onboarding";
 
 const AUTH_ROUTES = ["/login", "/signup", "/forgot-password", "/verify-email"];
+const ONBOARDING_ALLOWED = ["/signup", "/auth/callback", "/verify-email"];
 
-const PROTECTED_PREFIXES = ["/client", "/talent", "/admin"];
+const PROTECTED_PREFIXES = ["/client", "/talent", "/admin", "/profile"];
 
 function isAuthRoute(pathname: string) {
   return AUTH_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+}
+
+function isOnboardingAllowed(pathname: string) {
+  return ONBOARDING_ALLOWED.some(
+    (r) => pathname === r || pathname.startsWith(`${r}/`)
+  );
 }
 
 function isProtectedRoute(pathname: string) {
@@ -51,6 +59,25 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  if (user) {
+    const needsOnboarding = await userNeedsOnboarding(supabase, user);
+
+    if (needsOnboarding && !isOnboardingAllowed(pathname)) {
+      const signupUrl = request.nextUrl.clone();
+      signupUrl.pathname = "/signup";
+      signupUrl.searchParams.set("error", "no_account");
+      return NextResponse.redirect(signupUrl);
+    }
+
+    if (!needsOnboarding && isAuthRoute(pathname) && pathname !== "/verify-email") {
+      const home = await resolveHomePath(supabase, user.id);
+      const url = request.nextUrl.clone();
+      url.pathname = home;
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+  }
+
   if (isProtectedRoute(pathname) && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
@@ -59,20 +86,12 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user && isAuthRoute(pathname)) {
-    const home = await resolveHomePath(supabase, user.id);
-    const url = request.nextUrl.clone();
-    url.pathname = home;
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
-
   if (user && isProtectedRoute(pathname)) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("account_type")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     const accountType = normalizeAccountType(profile?.account_type);
 
@@ -97,9 +116,8 @@ async function resolveHomePath(
     .from("profiles")
     .select("account_type")
     .eq("id", userId)
-    .single();
+    .maybeSingle();
   return homeForAccountType(profile?.account_type);
 }
 
-// Re-export for server modules that already import from here
 export { homeForAccountType, normalizeAccountType } from "@/lib/auth/routes";

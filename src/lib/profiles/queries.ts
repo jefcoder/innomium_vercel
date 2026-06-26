@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { normalizeAccountType } from "@/lib/auth/routes";
-import type { Profile } from "./types";
+import type { AccountType, Profile } from "./types";
+
 export async function getCurrentUser() {
   const supabase = await createClient();
   const {
@@ -16,58 +18,100 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   return ensureProfile(user);
 }
 
-export async function ensureProfile(user: User): Promise<Profile> {
-  const supabase = await createClient();
+async function ensureRoleRecords(
+  supabase: SupabaseClient,
+  userId: string,
+  accountType: AccountType
+) {
+  if (accountType === "client") {
+    await supabase.from("client_profiles").upsert({ user_id: userId });
+  }
+  if (accountType === "talent_applicant" || accountType === "talent") {
+    await supabase.from("talent_applications").upsert({ user_id: userId });
+  }
+}
 
-  const { data: existing } = await supabase
+export async function ensureProfile(user: User): Promise<Profile | null> {
+  const supabase = await createClient();
+  const meta = user.user_metadata ?? {};
+
+  const { data: existing, error: readError } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
+
+  if (readError) {
+    console.error("ensureProfile: failed to read profile", readError.message);
+    return null;
+  }
 
   if (existing) {
     const normalized = normalizeAccountType(existing.account_type);
+    let profile = { ...existing, account_type: normalized } as Profile;
+
     if (existing.account_type !== normalized) {
-      await supabase
+      const { data: updated, error: updateError } = await supabase
         .from("profiles")
         .update({ account_type: normalized })
-        .eq("id", user.id);
-      return { ...existing, account_type: normalized } as Profile;
+        .eq("id", user.id)
+        .select()
+        .maybeSingle();
+
+      if (!updateError && updated) {
+        profile = updated as Profile;
+      }
     }
-    return existing as Profile;
+
+    await ensureRoleRecords(supabase, user.id, profile.account_type);
+    return profile;
   }
 
-  const meta = user.user_metadata ?? {};
+  if (meta.signup_completed !== true) {
+    return null;
+  }
+
   const accountType = normalizeAccountType(meta.account_type as string | undefined);
+  const payload = {
+    id: user.id,
+    full_name: (meta.full_name || meta.name || null) as string | null,
+    display_name: (meta.display_name || meta.name || null) as string | null,
+    avatar_url: (meta.avatar_url || meta.picture || null) as string | null,
+    account_type: accountType,
+  };
 
-  const { data: created, error } = await supabase
+  const { data: created, error: insertError } = await supabase
     .from("profiles")
-    .insert({
-      id: user.id,
-      full_name: meta.full_name || meta.name || null,
-      display_name: meta.display_name || meta.name || null,
-      avatar_url: meta.avatar_url || meta.picture || null,
-      account_type: accountType,
-    })
+    .upsert(payload, { onConflict: "id" })
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (insertError || !created) {
+    const { data: refetched } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
 
-  if (accountType === "client") {
-    await supabase.from("client_profiles").upsert({ user_id: user.id });
+    if (refetched) {
+      const accountType = normalizeAccountType(refetched.account_type);
+      await ensureRoleRecords(supabase, user.id, accountType);
+      return { ...refetched, account_type: accountType } as Profile;
+    }
+
+    console.error("ensureProfile: failed to create profile", insertError?.message);
+    return null;
   }
 
-  if (accountType === "talent_applicant") {
-    await supabase.from("talent_applications").upsert({ user_id: user.id });
-  }
-
+  await ensureRoleRecords(supabase, user.id, accountType);
   return created as Profile;
 }
 
-export async function requireProfile() {
+export async function requireProfile(): Promise<Profile> {
   const profile = await getCurrentProfile();
-  if (!profile) throw new Error("Unauthorized");
+  if (!profile) {
+    throw new Error("Unauthorized");
+  }
   return profile;
 }
 

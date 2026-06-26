@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/profiles/queries";
-import { homeForAccountType, settingsPathForAccountType } from "@/lib/auth/routes";
+import { homeForAccountType } from "@/lib/auth/routes";
 
 /** Legacy agency URL — forwards to the role-based dashboard. */
 export default async function ProfileRedirectPage() {

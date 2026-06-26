@@ -2,14 +2,59 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  Briefcase,
+  Calendar,
+  ClipboardList,
+  Code2,
+  CreditCard,
+  DollarSign,
+  FileText,
+  GitMerge,
+  LayoutDashboard,
+  Lock,
+  Menu,
+  MessageSquare,
+  Settings,
+  Shield,
+  Star,
+  Trophy,
+  User,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { Logo } from "@/components/ui/Logo";
 import { UserMenu } from "@/components/navigation/UserMenu";
 import { NotificationBell } from "@/components/dashboard/NotificationBell";
-import type { NavItem } from "@/lib/navigation/dashboard";
+import type { DashboardIcon, NavItem } from "@/lib/navigation/dashboard";
 import type { Profile } from "@/lib/profiles/types";
 import { cn } from "@/lib/utils";
+
+const navIcons: Record<DashboardIcon, LucideIcon> = {
+  layoutDashboard: LayoutDashboard,
+  fileText: FileText,
+  messageSquare: MessageSquare,
+  lock: Lock,
+  code2: Code2,
+  trophy: Trophy,
+  users: Users,
+  creditCard: CreditCard,
+  settings: Settings,
+  user: User,
+  badgeCheck: BadgeCheck,
+  calendar: Calendar,
+  briefcase: Briefcase,
+  dollarSign: DollarSign,
+  star: Star,
+  shield: Shield,
+  gitMerge: GitMerge,
+  alertTriangle: AlertTriangle,
+  clipboardList: ClipboardList,
+};
 
 interface DashboardShellProps {
   user: Profile;
@@ -57,7 +102,7 @@ export function DashboardShell({ user, nav, title, children }: DashboardShellPro
         >
           <nav className="flex flex-col gap-0.5 p-3">
             {nav.map((item) => {
-              const Icon = item.icon;
+              const Icon = navIcons[item.icon];
               const active =
                 pathname === item.href ||
                 (item.href !== nav[0].href && pathname.startsWith(item.href));

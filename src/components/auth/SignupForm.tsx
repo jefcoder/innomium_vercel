@@ -7,13 +7,17 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GraduationCap, Building2 } from "lucide-react";
 import { signupSchema, type SignupForm } from "@/lib/auth/schemas";
-import { signUpWithEmail } from "@/lib/auth/actions";
+import { completeOnboarding, signUpWithEmail } from "@/lib/auth/actions";
 import { authCopy } from "@/lib/auth/copy";
 import { AuthCard, AuthField, GoogleSignInButton } from "@/components/auth/AuthForm";
 import { Button } from "@/components/ui/Button";
 import type { AccountType } from "@/lib/profiles/types";
 
-export function SignupForm() {
+interface SignupFormProps {
+  isOnboarding?: boolean;
+}
+
+export function SignupForm({ isOnboarding = false }: SignupFormProps) {
   const searchParams = useSearchParams();
   const preselected = searchParams.get("type") as AccountType | null;
   const urlError = searchParams.get("error");
@@ -36,9 +40,21 @@ export function SignupForm() {
     defaultValues: { accountType: accountType ?? "client" },
   });
 
+  async function handleCompleteOnboarding() {
+    if (!accountType) return;
+    setLoading(true);
+    setError(null);
+    const result = await completeOnboarding(accountType);
+    if (result?.error) {
+      setError(result.error);
+      setLoading(false);
+    }
+  }
+
   if (!showForm) {
     return (
       <div className="space-y-6">
+        {isOnboarding && error && <p className="text-sm text-danger">{error}</p>}
         <AuthCard title="How will you use Innomium?">
           <div className="grid gap-4 md:grid-cols-2">
             <button
@@ -73,12 +89,14 @@ export function SignupForm() {
             </button>
           </div>
         </AuthCard>
-        <p className="text-center text-sm text-text-muted">
-          Already have an account?{" "}
-          <Link href="/login" className="text-brand hover:underline">
-            Sign in
-          </Link>
-        </p>
+        {!isOnboarding && (
+          <p className="text-center text-sm text-text-muted">
+            Already have an account?{" "}
+            <Link href="/login" className="text-brand hover:underline">
+              Sign in
+            </Link>
+          </p>
+        )}
       </div>
     );
   }
@@ -97,6 +115,41 @@ export function SignupForm() {
       setLoading(false);
     }
   };
+
+  if (isOnboarding) {
+    return (
+      <div className="space-y-6">
+        <button type="button" onClick={() => setShowForm(false)} className="text-sm text-text-muted">
+          ← Back
+        </button>
+        <AuthCard title="Complete your account setup">
+          {error && <p className="mb-4 text-sm text-danger">{error}</p>}
+          <p className="mb-6 text-sm text-text-muted">
+            Choose how to finish setting up your{" "}
+            <span className="font-medium text-text">
+              {accountType === "talent_applicant" ? "talent" : "client"}
+            </span>{" "}
+            account.
+          </p>
+          <div className="space-y-3">
+            <Button
+              type="button"
+              className="w-full"
+              showArrow={!loading}
+              onClick={handleCompleteOnboarding}
+            >
+              {loading ? "Continuing..." : "Continue"}
+            </Button>
+            <GoogleSignInButton
+              mode="signup"
+              accountType={accountType ?? "client"}
+              redirectTo={accountType === "talent_applicant" ? "/apply" : "/"}
+            />
+          </div>
+        </AuthCard>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
