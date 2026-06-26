@@ -1,22 +1,22 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import type { AccountType } from "@/lib/profiles/types";
+import {
+  canAccessRoute,
+  homeForAccountType,
+  normalizeAccountType,
+} from "@/lib/auth/routes";
 
 const AUTH_ROUTES = ["/login", "/signup", "/forgot-password", "/verify-email"];
 
-const ROLE_PREFIXES: { prefix: string; roles: AccountType[] }[] = [
-  { prefix: "/client", roles: ["client", "admin"] },
-  { prefix: "/talent", roles: ["talent", "talent_applicant", "admin"] },
-  { prefix: "/admin", roles: ["admin"] },
-];
+const PROTECTED_PREFIXES = ["/client", "/talent", "/admin"];
 
 function isAuthRoute(pathname: string) {
   return AUTH_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 }
 
-function getRoleGuard(pathname: string) {
-  return ROLE_PREFIXES.find(
-    (g) => pathname === g.prefix || pathname.startsWith(`${g.prefix}/`)
+function isProtectedRoute(pathname: string) {
+  return PROTECTED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
 }
 
@@ -50,9 +50,8 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const guard = getRoleGuard(pathname);
 
-  if (guard && !user) {
+  if (isProtectedRoute(pathname) && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("redirectTo", pathname);
@@ -68,36 +67,26 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (guard && user) {
+  if (user && isProtectedRoute(pathname)) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("account_type")
       .eq("id", user.id)
       .single();
 
-    const accountType = (profile?.account_type ?? "client") as AccountType;
-    if (!guard.roles.includes(accountType)) {
+    const accountType = normalizeAccountType(profile?.account_type);
+
+    if (!canAccessRoute(accountType, pathname)) {
       const home = homeForAccountType(accountType);
-      const url = request.nextUrl.clone();
-      url.pathname = home;
-      return NextResponse.redirect(url);
+      if (home !== pathname) {
+        const url = request.nextUrl.clone();
+        url.pathname = home;
+        return NextResponse.redirect(url);
+      }
     }
   }
 
   return supabaseResponse;
-}
-
-export function homeForAccountType(accountType: AccountType): string {
-  switch (accountType) {
-    case "admin":
-      return "/admin";
-    case "talent":
-    case "talent_applicant":
-      return "/talent";
-    case "client":
-    default:
-      return "/client";
-  }
 }
 
 async function resolveHomePath(
@@ -109,5 +98,8 @@ async function resolveHomePath(
     .select("account_type")
     .eq("id", userId)
     .single();
-  return homeForAccountType((profile?.account_type ?? "client") as AccountType);
+  return homeForAccountType(profile?.account_type);
 }
+
+// Re-export for server modules that already import from here
+export { homeForAccountType, normalizeAccountType } from "@/lib/auth/routes";

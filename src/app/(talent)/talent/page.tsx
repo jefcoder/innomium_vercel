@@ -56,7 +56,7 @@ export default async function TalentOverviewPage() {
         <div className="card-surface p-5">
           <p className="text-sm text-text-muted">Overall reputation</p>
           <p className="mt-1 text-3xl font-bold text-text">
-            {talentProfile.reputation_overall.toFixed(1)}
+            {Number(talentProfile.reputation_overall).toFixed(1)}
           </p>
         </div>
       )}

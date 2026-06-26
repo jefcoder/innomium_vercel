@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { GraduationCap, Building2 } from "lucide-react";
 import { signupSchema, type SignupForm } from "@/lib/auth/schemas";
 import { signUpWithEmail } from "@/lib/auth/actions";
+import { authCopy } from "@/lib/auth/copy";
 import { AuthCard, AuthField, GoogleSignInButton } from "@/components/auth/AuthForm";
 import { Button } from "@/components/ui/Button";
 import type { AccountType } from "@/lib/profiles/types";
@@ -15,11 +16,14 @@ import type { AccountType } from "@/lib/profiles/types";
 export function SignupForm() {
   const searchParams = useSearchParams();
   const preselected = searchParams.get("type") as AccountType | null;
+  const urlError = searchParams.get("error");
   const [accountType, setAccountType] = useState<"client" | "talent_applicant" | null>(
     preselected === "client" || preselected === "talent_applicant" ? preselected : null
   );
   const [showForm, setShowForm] = useState(Boolean(accountType));
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    urlError === "no_account" ? authCopy.noAccountFound : null
+  );
   const [loading, setLoading] = useState(false);
 
   const {
@@ -120,7 +124,11 @@ export function SignupForm() {
           </Button>
         </form>
         <div className="mt-6">
-          <GoogleSignInButton />
+          <GoogleSignInButton
+            mode="signup"
+            accountType={accountType ?? "client"}
+            redirectTo={accountType === "talent_applicant" ? "/apply" : "/"}
+          />
         </div>
       </AuthCard>
     </div>

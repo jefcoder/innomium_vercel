@@ -29,14 +29,6 @@ begin
 end;
 $$;
 
-create or replace function public.is_admin()
-returns boolean language sql stable security definer set search_path = public as $$
-  select exists (
-    select 1 from public.profiles p
-    where p.id = auth.uid() and p.account_type = 'admin'
-  );
-$$;
-
 -- ---------------------------------------------------------------------------
 -- profiles
 -- ---------------------------------------------------------------------------
@@ -60,6 +52,14 @@ create table public.profiles (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create or replace function public.is_admin()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid() and p.account_type = 'admin'
+  );
+$$;
 
 -- ---------------------------------------------------------------------------
 -- organizations & client_profiles
@@ -114,7 +114,7 @@ create table public.talent_profiles (
   application_id uuid references public.talent_applications (id),
   professional_headline text,
   years_experience int,
-  current_role text,
+  "current_role" text,
   visibility text not null default 'limited'
     check (visibility in ('hidden', 'public', 'limited', 'contribution')),
   availability jsonb not null default '{"consulting":false,"proprietary":false,"tasks":false,"competitions":false}'::jsonb,

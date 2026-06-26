@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { amountCents, clientProfileId, referenceType, referenceId, description } = body;
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3002";
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
 
     const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({

@@ -26,7 +26,7 @@ Copy `.env.example` to `.env.local` and fill in:
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
-NEXT_PUBLIC_SITE_URL=http://localhost:3002
+NEXT_PUBLIC_SITE_URL=http://localhost:3001
 STRIPE_SECRET_KEY=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 STRIPE_WEBHOOK_SECRET=
@@ -42,7 +42,7 @@ This **drops all agency tables and data** and creates the full talent platform s
 
 ### 4. Supabase Auth
 
-Add redirect URL: `http://localhost:3002/auth/callback`
+Add redirect URL: `http://localhost:3001/auth/callback`
 
 ### 5. Stripe
 
@@ -60,4 +60,4 @@ UPDATE profiles SET account_type = 'admin' WHERE id = '<your-user-uuid>';
 pnpm dev
 ```
 
-Open http://localhost:3002
+Open http://localhost:3001

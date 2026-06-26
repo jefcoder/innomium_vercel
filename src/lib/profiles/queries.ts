@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { User } from "@supabase/supabase-js";
-import type { Profile, AccountType } from "./types";
-
+import { normalizeAccountType } from "@/lib/auth/routes";
+import type { Profile } from "./types";
 export async function getCurrentUser() {
   const supabase = await createClient();
   const {
@@ -25,10 +25,20 @@ export async function ensureProfile(user: User): Promise<Profile> {
     .eq("id", user.id)
     .single();
 
-  if (existing) return existing as Profile;
+  if (existing) {
+    const normalized = normalizeAccountType(existing.account_type);
+    if (existing.account_type !== normalized) {
+      await supabase
+        .from("profiles")
+        .update({ account_type: normalized })
+        .eq("id", user.id);
+      return { ...existing, account_type: normalized } as Profile;
+    }
+    return existing as Profile;
+  }
 
   const meta = user.user_metadata ?? {};
-  const accountType = (meta.account_type as AccountType) || "client";
+  const accountType = normalizeAccountType(meta.account_type as string | undefined);
 
   const { data: created, error } = await supabase
     .from("profiles")
@@ -63,6 +73,6 @@ export async function requireProfile() {
 
 export async function requireAdmin() {
   const profile = await requireProfile();
-  if (profile.account_type !== "admin") throw new Error("Forbidden");
+  if (normalizeAccountType(profile.account_type) !== "admin") throw new Error("Forbidden");
   return profile;
 }

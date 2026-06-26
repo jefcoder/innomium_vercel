@@ -4,10 +4,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { authCopy } from "@/lib/auth/copy";
 import { ensureProfile } from "@/lib/profiles/queries";
-import { homeForAccountType } from "@/lib/supabase/middleware";
+import { homeForAccountType, normalizeAccountType } from "@/lib/auth/routes";
 import type { AccountType } from "@/lib/profiles/types";
 
-const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3002";
+const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
 
 export async function signOut() {
   const supabase = await createClient();
@@ -23,15 +23,20 @@ export async function signInWithEmail(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error) return { error: authCopy.loginError };
+  if (error) {
+    return { error: authCopy.loginError, needsSignup: true };
+  }
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (user) {
+    if (!user.user_metadata?.signup_completed) {
+      await supabase.auth.updateUser({ data: { signup_completed: true } });
+    }
     const profile = await ensureProfile(user);
-    const home = redirectTo || homeForAccountType(profile.account_type);
+    const home = redirectTo || homeForAccountType(normalizeAccountType(profile.account_type));
     redirect(home);
   }
 
@@ -49,8 +54,12 @@ export async function signUpWithEmail(formData: FormData) {
     email,
     password,
     options: {
-      data: { full_name: fullName, account_type: accountType },
-      emailRedirectTo: `${siteUrl()}/auth/callback`,
+      data: {
+        full_name: fullName,
+        account_type: accountType,
+        signup_completed: true,
+      },
+      emailRedirectTo: `${siteUrl()}/auth/callback?mode=signup&accountType=${accountType}`,
     },
   });
 
@@ -79,14 +88,38 @@ export async function resetPasswordForEmail(formData: FormData) {
 export async function signInWithGoogle(redirectTo?: string) {
   const supabase = await createClient();
   const next = redirectTo || "/";
+  const params = new URLSearchParams({ mode: "login", next });
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent(next)}`,
+      redirectTo: `${siteUrl()}/auth/callback?${params.toString()}`,
     },
   });
 
   if (error || !data.url) return { error: authCopy.loginError };
+  redirect(data.url);
+}
+
+export async function signUpWithGoogle(
+  accountType: "client" | "talent_applicant",
+  redirectTo?: string
+) {
+  const supabase = await createClient();
+  const next = redirectTo || (accountType === "talent_applicant" ? "/apply" : "/");
+  const params = new URLSearchParams({
+    mode: "signup",
+    accountType,
+    next,
+  });
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${siteUrl()}/auth/callback?${params.toString()}`,
+    },
+  });
+
+  if (error || !data.url) return { error: authCopy.signupError };
   redirect(data.url);
 }

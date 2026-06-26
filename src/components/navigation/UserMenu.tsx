@@ -6,7 +6,7 @@ import { ChevronDown, LogOut, Settings, LayoutDashboard } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { signOut } from "@/lib/auth/actions";
-import { homeForAccountType } from "@/lib/supabase/middleware";
+import { homeForAccountType, settingsPathForAccountType } from "@/lib/auth/routes";
 import type { Profile } from "@/lib/profiles/types";
 
 interface UserMenuProps {
@@ -18,6 +18,7 @@ export function UserMenu({ user }: UserMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const dashboardPath = homeForAccountType(user.account_type);
+  const settingsPath = settingsPathForAccountType(user.account_type);
   const displayName = user.display_name || user.full_name || "Account";
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export function UserMenu({ user }: UserMenuProps) {
             Dashboard
           </Link>
           <Link
-            href={`${dashboardPath}/settings`}
+            href={settingsPath}
             className="flex items-center gap-2 px-4 py-2.5 text-sm text-text hover:bg-surface-soft"
             onClick={() => setOpen(false)}
           >

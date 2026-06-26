@@ -7,7 +7,7 @@ export async function POST() {
   try {
     const profile = await requireProfile();
     const supabase = await createClient();
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3002";
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001";
 
     let accountId = profile.stripe_connect_id;
 
