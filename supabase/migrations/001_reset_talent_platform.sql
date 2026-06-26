@@ -2,21 +2,60 @@
 -- Run in Supabase SQL Editor. Wipes agency tables and data.
 
 -- ---------------------------------------------------------------------------
--- Step 1: Drop agency artifacts
+-- Step 1: Drop agency artifacts + any prior talent-platform tables (idempotent re-run)
 -- ---------------------------------------------------------------------------
 drop policy if exists "Users can delete own avatar" on storage.objects;
 drop policy if exists "Users can update own avatar" on storage.objects;
 drop policy if exists "Users can upload own avatar" on storage.objects;
 drop policy if exists "Avatar images are publicly accessible" on storage.objects;
+drop policy if exists "avatars_public" on storage.objects;
+drop policy if exists "avatars_own" on storage.objects;
+drop policy if exists "avatars_update_own" on storage.objects;
+drop policy if exists "evidence_own" on storage.objects;
 
+-- Legacy agency tables
 drop table if exists public.requested_tasks cascade;
 drop table if exists public.launched_competitions cascade;
 drop table if exists public.builder_activity cascade;
+
+-- Talent platform (children first)
+drop table if exists public.competition_daily_scores cascade;
+drop table if exists public.request_invitations cascade;
+drop table if exists public.admin_notes cascade;
+drop table if exists public.reputation_events cascade;
+drop table if exists public.reports cascade;
+drop table if exists public.reviews cascade;
+drop table if exists public.notifications cascade;
+drop table if exists public.messages cascade;
+drop table if exists public.message_threads cascade;
+drop table if exists public.conflict_checks cascade;
+drop table if exists public.nda_agreements cascade;
+drop table if exists public.payouts cascade;
+drop table if exists public.payments cascade;
+drop table if exists public.contracts cascade;
+drop table if exists public.leaderboard_entries cascade;
+drop table if exists public.competition_submissions cascade;
+drop table if exists public.competition_participants cascade;
+drop table if exists public.competitions cascade;
+drop table if exists public.time_logs cascade;
+drop table if exists public.task_milestones cascade;
+drop table if exists public.task_requests cascade;
+drop table if exists public.proprietary_consult_requests cascade;
+drop table if exists public.consult_requests cascade;
+drop table if exists public.client_requests cascade;
+drop table if exists public.skill_verifications cascade;
+drop table if exists public.skill_evidence cascade;
+drop table if exists public.skill_claims cascade;
+drop table if exists public.skills cascade;
+drop table if exists public.talent_profiles cascade;
+drop table if exists public.talent_applications cascade;
 drop table if exists public.client_profiles cascade;
+drop table if exists public.organizations cascade;
 drop table if exists public.profiles cascade;
 
 drop trigger if exists on_auth_user_created on auth.users;
 drop function if exists public.handle_new_user() cascade;
+drop function if exists public.is_admin() cascade;
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -835,6 +874,13 @@ insert into public.skills (name, category, slug) values
   ('Experiment Tracking', 'MLOps', 'experiment-tracking')
 on conflict (slug) do nothing;
 
--- Enable realtime for messages and notifications
-alter publication supabase_realtime add table public.messages;
-alter publication supabase_realtime add table public.notifications;
+-- Enable realtime for messages and notifications (ignore if already added)
+do $$ begin
+  alter publication supabase_realtime add table public.messages;
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  alter publication supabase_realtime add table public.notifications;
+exception when duplicate_object then null;
+end $$;

@@ -1,11 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { getTalentProfile } from "@/lib/profiles/helpers";
+import { listSkills } from "@/lib/skills/queries";
+import { AddSkillClaimForm } from "@/components/talent/AddSkillClaimForm";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 
 export default async function TalentSkillsPage() {
   const talentProfile = await getTalentProfile();
   const supabase = await createClient();
+  const skills = await listSkills();
 
   const { data: claims } = await supabase
     .from("skill_claims")
@@ -17,10 +20,12 @@ export default async function TalentSkillsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-text">Skills</h1>
 
+      <AddSkillClaimForm skills={skills} />
+
       {!claims?.length ? (
         <EmptyState
           title="No skill claims"
-          description="Add skills during your application or from your profile settings."
+          description="Add skills using the form above."
         />
       ) : (
         <ul className="space-y-3">

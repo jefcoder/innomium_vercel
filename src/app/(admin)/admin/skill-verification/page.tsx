@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { SkillClaimReviewForm } from "@/components/admin/SkillClaimReviewForm";
 import { EmptyState } from "@/components/dashboard/EmptyState";
-import { Badge } from "@/components/ui/Badge";
-import { formatDate } from "@/lib/utils";
 
 export default async function AdminSkillVerificationPage() {
   const supabase = await createClient();
@@ -23,15 +22,13 @@ export default async function AdminSkillVerificationPage() {
           {claims.map((claim) => {
             const skill = claim.skills as { name: string; category: string } | null;
             return (
-              <li key={claim.id} className="card-surface flex flex-wrap items-center justify-between gap-3 p-4">
-                <div>
-                  <p className="font-medium text-text">{skill?.name ?? "Skill"}</p>
-                  <p className="text-sm text-text-muted">
-                    {skill?.category} · Level {claim.level} · {formatDate(claim.created_at)}
-                  </p>
-                </div>
-                <Badge variant="warning">pending</Badge>
-              </li>
+              <SkillClaimReviewForm
+                key={claim.id}
+                claimId={claim.id}
+                skillName={skill?.name ?? "Skill"}
+                level={claim.level}
+                explanation={claim.explanation}
+              />
             );
           })}
         </ul>

@@ -5,7 +5,7 @@ import { getClientProfile } from "@/lib/profiles/helpers";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-export default async function ClientCompetitionManagePage({
+export default async function ClientCompetitionDetailPage({
   params,
 }: {
   params: Promise<{ competitionId: string }>;
@@ -23,9 +23,9 @@ export default async function ClientCompetitionManagePage({
 
   if (!competition) notFound();
 
-  const { count: participantCount } = await supabase
+  const { data: participants } = await supabase
     .from("competition_participants")
-    .select("*", { count: "exact", head: true })
+    .select("id, status, created_at, talent_profiles(professional_headline)")
     .eq("competition_id", competitionId);
 
   return (
@@ -35,36 +35,44 @@ export default async function ClientCompetitionManagePage({
           ← Back to competitions
         </Link>
         <h1 className="mt-2 text-2xl font-bold text-text">{competition.title}</h1>
-        <p className="mt-1 text-sm text-text-muted">Manage your competition</p>
+        <Badge variant="brand" className="mt-2">
+          {competition.status}
+        </Badge>
       </div>
 
-      <div className="card-surface space-y-4 p-6">
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="brand">{competition.status}</Badge>
-          {competition.prize_pool_cents != null && (
-            <Badge variant="success">{formatCurrency(competition.prize_pool_cents)} prize pool</Badge>
-          )}
-        </div>
-        {competition.description && (
-          <p className="text-sm text-text-muted">{competition.description}</p>
+      <div className="card-surface space-y-3 p-6 text-sm">
+        {competition.description && <p className="text-text-muted">{competition.description}</p>}
+        {competition.prize_pool_cents != null && (
+          <p>Prize pool: {formatCurrency(competition.prize_pool_cents)}</p>
         )}
-        <dl className="grid gap-3 text-sm sm:grid-cols-2">
-          <dt className="text-text-muted">Participants</dt>
-          <dd className="text-text">{participantCount ?? 0}</dd>
-          {competition.starts_at && (
-            <>
-              <dt className="text-text-muted">Starts</dt>
-              <dd className="text-text">{formatDate(competition.starts_at)}</dd>
-            </>
-          )}
-          {competition.ends_at && (
-            <>
-              <dt className="text-text-muted">Ends</dt>
-              <dd className="text-text">{formatDate(competition.ends_at)}</dd>
-            </>
-          )}
-        </dl>
+        {competition.daily_budget_cents != null && (
+          <p>Daily budget: {formatCurrency(competition.daily_budget_cents)}</p>
+        )}
+        <p>Reward model: {competition.reward_model}</p>
+        {competition.ends_at && <p>Ends: {formatDate(competition.ends_at)}</p>}
       </div>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold text-text">Participants</h2>
+        {!participants?.length ? (
+          <p className="text-sm text-text-muted">No participants yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {participants.map((p) => {
+              const talentRaw = p.talent_profiles;
+              const talent = (Array.isArray(talentRaw) ? talentRaw[0] : talentRaw) as {
+                professional_headline: string | null;
+              } | null;
+              return (
+                <li key={p.id} className="card-surface flex justify-between p-3 text-sm">
+                  <span>{talent?.professional_headline ?? "Talent"}</span>
+                  <Badge variant="muted">{p.status}</Badge>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

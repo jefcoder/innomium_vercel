@@ -1,5 +1,6 @@
 import { requireProfile } from "@/lib/profiles/queries";
 import { updateProfile } from "@/lib/profiles/actions";
+import { AvatarUpload } from "@/components/talent/AvatarUpload";
 import { Button } from "@/components/ui/Button";
 
 export default async function TalentSettingsPage() {
@@ -8,13 +9,17 @@ export default async function TalentSettingsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-text">Settings</h1>
+      <div className="card-surface max-w-2xl space-y-4 p-6">
+        <h2 className="text-sm font-semibold text-text">Avatar</h2>
+        <AvatarUpload userId={profile.id} currentUrl={profile.avatar_url} />
+      </div>
       <form action={updateProfile} className="card-surface max-w-2xl space-y-4 p-6">
         <label className="block space-y-1 text-sm">
           <span className="font-medium text-text">Location</span>
           <input
             name="location"
             defaultValue={profile.location ?? ""}
-            className="w-full rounded-lg border border-border bg-bg-pure px-3 py-2"
+            className="field-input"
           />
         </label>
         <label className="block space-y-1 text-sm">
@@ -22,7 +27,7 @@ export default async function TalentSettingsPage() {
           <input
             name="timezone"
             defaultValue={profile.timezone ?? ""}
-            className="w-full rounded-lg border border-border bg-bg-pure px-3 py-2"
+            className="field-input"
           />
         </label>
         <label className="block space-y-1 text-sm">
@@ -30,7 +35,7 @@ export default async function TalentSettingsPage() {
           <input
             name="websiteUrl"
             defaultValue={profile.website_url ?? ""}
-            className="w-full rounded-lg border border-border bg-bg-pure px-3 py-2"
+            className="field-input"
           />
         </label>
         <label className="block space-y-1 text-sm">
@@ -38,7 +43,7 @@ export default async function TalentSettingsPage() {
           <input
             name="linkedinUrl"
             defaultValue={profile.linkedin_url ?? ""}
-            className="w-full rounded-lg border border-border bg-bg-pure px-3 py-2"
+            className="field-input"
           />
         </label>
         <label className="block space-y-1 text-sm">
@@ -46,7 +51,7 @@ export default async function TalentSettingsPage() {
           <input
             name="githubUrl"
             defaultValue={profile.github_url ?? ""}
-            className="w-full rounded-lg border border-border bg-bg-pure px-3 py-2"
+            className="field-input"
           />
         </label>
         <input type="hidden" name="fullName" value={profile.full_name ?? ""} />

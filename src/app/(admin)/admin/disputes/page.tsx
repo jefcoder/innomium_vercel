@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { DisputeResolutionForm } from "@/components/admin/DisputeResolutionForm";
 import { EmptyState } from "@/components/dashboard/EmptyState";
-import { Badge } from "@/components/ui/Badge";
-import { formatDate } from "@/lib/utils";
 
 export default async function AdminDisputesPage() {
   const supabase = await createClient();
@@ -23,13 +22,7 @@ export default async function AdminDisputesPage() {
           {disputes.map((task) => {
             const request = task.client_requests as { title: string };
             return (
-              <li key={task.id} className="card-surface flex flex-wrap items-center justify-between gap-3 p-4">
-                <div>
-                  <p className="font-medium text-text">{request.title}</p>
-                  <p className="text-sm text-text-muted">Updated {formatDate(task.updated_at)}</p>
-                </div>
-                <Badge variant="warning">disputed</Badge>
-              </li>
+              <DisputeResolutionForm key={task.id} taskId={task.id} taskTitle={request.title} />
             );
           })}
         </ul>

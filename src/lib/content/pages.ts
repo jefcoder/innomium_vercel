@@ -135,5 +135,5 @@ export const competitionsContent = {
     },
   ],
   dailyBudgetNote:
-    "Daily-budget live leaderboards are coming soon. Final-score and contribution-based competitions are available now.",
+    "Daily-budget live leaderboards distribute rewards proportionally each day. Final-score, contribution-based, and manual-judge competitions are also available.",
 };

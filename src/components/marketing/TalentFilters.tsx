@@ -7,9 +7,10 @@ import type { Skill } from "@/lib/profiles/types";
 interface TalentFiltersProps {
   skills: Skill[];
   current: { skill?: string; search?: string; availability?: string };
+  basePath?: string;
 }
 
-export function TalentFilters({ skills, current }: TalentFiltersProps) {
+export function TalentFilters({ skills, current, basePath = "/talents" }: TalentFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -17,7 +18,7 @@ export function TalentFilters({ skills, current }: TalentFiltersProps) {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
-    router.push(`/talents?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
   }
 
   const categories = [...new Set(skills.map((s) => s.category))];

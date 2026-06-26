@@ -33,6 +33,14 @@ export async function updateProfile(formData: FormData) {
   revalidatePath("/talent/settings");
 }
 
+export async function updateAvatarUrl(avatarUrl: string) {
+  const userId = await requireUserId();
+  const supabase = await createClient();
+  await supabase.from("profiles").update({ avatar_url: avatarUrl }).eq("id", userId);
+  revalidatePath("/talent/settings");
+  revalidatePath("/talent/profile");
+}
+
 export async function updateClientProfile(formData: FormData) {
   const userId = await requireUserId();
   const supabase = await createClient();

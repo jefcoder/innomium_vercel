@@ -4,6 +4,37 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile, requireAdmin } from "@/lib/profiles/queries";
 
+async function syncReputationScores(profileId: string) {
+  const supabase = await createClient();
+  const { data: events } = await supabase
+    .from("reputation_events")
+    .select("dimension, delta")
+    .eq("profile_id", profileId);
+
+  const totals: Record<string, number> = {
+    overall: 0,
+    consulting: 0,
+    tasks: 0,
+    competitions: 0,
+  };
+
+  for (const event of events ?? []) {
+    const dim = event.dimension as keyof typeof totals;
+    if (dim in totals) totals[dim] += Number(event.delta);
+    totals.overall += Number(event.delta);
+  }
+
+  await supabase
+    .from("talent_profiles")
+    .update({
+      reputation_overall: totals.overall,
+      reputation_consulting: totals.consulting,
+      reputation_tasks: totals.tasks,
+      reputation_competitions: totals.competitions,
+    })
+    .eq("user_id", profileId);
+}
+
 export async function submitReview(formData: FormData) {
   const profile = await requireProfile();
   const supabase = await createClient();
@@ -30,6 +61,8 @@ export async function submitReview(formData: FormData) {
     reference_type: formData.get("referenceType") as string,
     reference_id: formData.get("referenceId") as string,
   });
+
+  await syncReputationScores(revieweeId);
 
   revalidatePath("/talent/reputation");
   return { success: true };
@@ -77,6 +110,7 @@ export async function moderateReport(
       reference_type: "report",
       reference_id: reportId,
     });
+    await syncReputationScores(report.reported_id);
   }
 
   revalidatePath("/admin/reports");

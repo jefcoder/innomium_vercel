@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { Badge } from "@/components/ui/Badge";
@@ -22,7 +23,11 @@ export default async function AdminCompetitionsPage() {
           {competitions.map((competition) => {
             const client = competition.client_profiles as { company_name: string | null } | null;
             return (
-              <li key={competition.id} className="card-surface flex flex-wrap items-center justify-between gap-3 p-4">
+              <li key={competition.id}>
+                <Link
+                  href={`/admin/competitions/${competition.id}`}
+                  className="card-surface flex flex-wrap items-center justify-between gap-3 p-4 transition-shadow hover:shadow-md"
+                >
                 <div>
                   <p className="font-semibold text-text">{competition.title}</p>
                   <p className="text-sm text-text-muted">
@@ -34,6 +39,7 @@ export default async function AdminCompetitionsPage() {
                   </p>
                 </div>
                 <Badge variant="brand">{competition.status}</Badge>
+                </Link>
               </li>
             );
           })}

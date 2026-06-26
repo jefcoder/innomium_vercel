@@ -1,11 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { getClientProfile } from "@/lib/profiles/helpers";
 import { EmptyState } from "@/components/dashboard/EmptyState";
-import { StripeCheckoutButton } from "@/components/dashboard/StripeCheckoutButton";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-export default async function ClientPaymentsPage() {
+export default async function ClientPaymentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ success?: string; cancelled?: string }>;
+}) {
+  const params = await searchParams;
   const clientProfile = await getClientProfile();
   const supabase = await createClient();
 
@@ -17,16 +21,23 @@ export default async function ClientPaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-text">Payments</h1>
-        <StripeCheckoutButton />
-      </div>
+      <h1 className="text-2xl font-bold text-text">Payments</h1>
+
+      {params.success && (
+        <p className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800">
+          Payment completed successfully.
+        </p>
+      )}
+      {params.cancelled && (
+        <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Payment was cancelled.
+        </p>
+      )}
 
       {!payments?.length ? (
         <EmptyState
           title="No payments yet"
           description="Payment history for consults, tasks, and competitions will appear here."
-          action={<StripeCheckoutButton label="Make a payment" />}
         />
       ) : (
         <ul className="space-y-3">

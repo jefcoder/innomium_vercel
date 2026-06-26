@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getTalentProfile } from "@/lib/profiles/helpers";
 import { EmptyState } from "@/components/dashboard/EmptyState";
@@ -29,7 +30,10 @@ export default async function TalentTasksPage() {
             const request = task.client_requests as { title: string };
             return (
               <li key={task.id}>
-                <div className="card-surface flex flex-wrap items-center justify-between gap-3 p-4">
+                <Link
+                  href={`/talent/tasks/${task.id}`}
+                  className="card-surface flex flex-wrap items-center justify-between gap-3 p-4 transition-shadow hover:shadow-md"
+                >
                   <div>
                     <p className="font-medium text-text">{request.title}</p>
                     <p className="text-sm text-text-muted">
@@ -39,7 +43,7 @@ export default async function TalentTasksPage() {
                   <Badge variant={task.lifecycle_status === "active" ? "success" : "muted"}>
                     {task.lifecycle_status}
                   </Badge>
-                </div>
+                </Link>
               </li>
             );
           })}

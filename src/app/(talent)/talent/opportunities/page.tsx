@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getTalentProfile } from "@/lib/profiles/helpers";
+import { InvitationActions } from "@/components/talent/InvitationActions";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate } from "@/lib/utils";
@@ -47,6 +48,7 @@ export default async function TalentOpportunitiesPage() {
                     {invitation.status}
                   </Badge>
                 </div>
+                <InvitationActions invitationId={invitation.id} status={invitation.status} />
               </li>
             );
           })}

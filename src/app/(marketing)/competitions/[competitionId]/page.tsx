@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import { Trophy, Calendar } from "lucide-react";
 import { getCompetitionById, getLeaderboard } from "@/lib/competitions/queries";
+import { getCurrentProfile } from "@/lib/profiles/queries";
+import { CompetitionRegisterButton } from "@/components/competitions/CompetitionRegisterButton";
+import { LiveLeaderboard } from "@/components/competitions/LiveLeaderboard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -17,12 +20,15 @@ export default async function CompetitionDetailPage({
   params: Promise<{ competitionId: string }>;
 }) {
   const { competitionId } = await params;
-  const [competition, leaderboard] = await Promise.all([
+  const [competition, leaderboard, profile] = await Promise.all([
     getCompetitionById(competitionId),
     getLeaderboard(competitionId),
+    getCurrentProfile(),
   ]);
 
   if (!competition) notFound();
+
+  const isTalent = profile?.account_type === "talent";
 
   return (
     <div className="section-container py-16 md:py-24">
@@ -58,34 +64,14 @@ export default async function CompetitionDetailPage({
         )}
 
         <div className="mt-8 flex gap-3">
-          <Button href="/signup">Register to Participate</Button>
+          <CompetitionRegisterButton competitionId={competitionId} isTalent={isTalent} />
           <Button href="/competitions" variant="outline">
             All Competitions
           </Button>
         </div>
       </div>
 
-      {leaderboard.length > 0 && (
-        <div className="mt-8 card-surface p-6">
-          <h2 className="heading-section">Leaderboard</h2>
-          <table className="mt-4 w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-text-muted">
-                <th className="pb-2">Rank</th>
-                <th className="pb-2">Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboard.map((entry: { id: string; rank: number; score: number }) => (
-                <tr key={entry.id} className="border-b border-border">
-                  <td className="py-3">{entry.rank}</td>
-                  <td className="py-3">{Number(entry.score).toFixed(4)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <LiveLeaderboard competitionId={competitionId} initialEntries={leaderboard} />
     </div>
   );
 }

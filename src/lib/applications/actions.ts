@@ -178,3 +178,46 @@ export async function verifySkillClaim(
   revalidatePath("/admin/skill-verification");
   return { success: true };
 }
+
+export async function addSkillClaim(formData: FormData) {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+
+  const { data: talent } = await supabase
+    .from("talent_profiles")
+    .select("id")
+    .eq("user_id", profile.id)
+    .single();
+
+  if (!talent) return { error: "Verified talent required" };
+
+  const skillId = formData.get("skillId") as string;
+  const level = parseInt(formData.get("level") as string) || 2;
+  const explanation = formData.get("explanation") as string;
+  const evidenceUrl = formData.get("evidenceUrl") as string;
+
+  const { data: claim } = await supabase
+    .from("skill_claims")
+    .insert({
+      talent_profile_id: talent.id,
+      skill_id: skillId,
+      level,
+      explanation,
+      status: "pending",
+    })
+    .select()
+    .single();
+
+  if (claim && evidenceUrl) {
+    await supabase.from("skill_evidence").insert({
+      skill_claim_id: claim.id,
+      evidence_type: "url",
+      url: evidenceUrl,
+      title: "Supporting evidence",
+    });
+  }
+
+  revalidatePath("/talent/skills");
+  revalidatePath("/admin/skill-verification");
+  return { success: true };
+}

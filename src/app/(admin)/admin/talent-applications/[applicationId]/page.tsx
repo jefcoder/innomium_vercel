@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ApplicationReviewForm } from "@/components/admin/ApplicationReviewForm";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate } from "@/lib/utils";
 
@@ -85,6 +86,11 @@ export default async function AdminTalentApplicationDetailPage({
           </ul>
         </section>
       )}
+
+      <ApplicationReviewForm
+        applicationId={applicationId}
+        currentStatus={application.status}
+      />
     </div>
   );
 }

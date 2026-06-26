@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getClientProfile } from "@/lib/profiles/helpers";
+import { MessageInnomiumButton } from "@/components/messaging/MessageInnomiumButton";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default async function ClientRequestDetailPage({
@@ -74,9 +74,7 @@ export default async function ClientRequestDetailPage({
         </dl>
       </div>
 
-      <Button href="/client/messages" variant="secondary">
-        Message Innomium
-      </Button>
+      <MessageInnomiumButton requestId={requestId} requestTitle={request.title} />
     </div>
   );
 }

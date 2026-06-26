@@ -38,7 +38,11 @@ export default async function TalentCompetitionsPage() {
               ends_at: string | null;
             };
             return (
-              <li key={participant.id} className="card-surface flex flex-wrap items-center justify-between gap-3 p-4">
+              <li key={participant.id}>
+                <Link
+                  href={`/talent/competitions/${participant.competition_id}`}
+                  className="card-surface flex flex-wrap items-center justify-between gap-3 p-4 transition-shadow hover:shadow-md"
+                >
                 <div>
                   <p className="font-medium text-text">{competition.title}</p>
                   <p className="text-sm text-text-muted">
@@ -46,6 +50,7 @@ export default async function TalentCompetitionsPage() {
                   </p>
                 </div>
                 <Badge variant="brand">{competition.status}</Badge>
+                </Link>
               </li>
             );
           })}

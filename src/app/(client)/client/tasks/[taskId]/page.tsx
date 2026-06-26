@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getClientProfile } from "@/lib/profiles/helpers";
+import { AddMilestoneForm } from "@/components/tasks/AddMilestoneForm";
+import { TaskActions } from "@/components/tasks/TaskActions";
+import { ReviewForm } from "@/components/trust/ReviewForm";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -17,14 +20,20 @@ export default async function ClientTaskDetailPage({
 
   const { data: task } = await supabase
     .from("task_requests")
-    .select("*, client_requests!inner(title, description, client_profile_id)")
+    .select("*, client_requests!inner(title, description, client_profile_id), talent_profiles!task_requests_assigned_talent_id_fkey(user_id)")
     .eq("id", taskId)
     .eq("client_requests.client_profile_id", clientProfile?.id ?? "")
     .single();
 
   if (!task) notFound();
 
-  const request = task.client_requests as { title: string; description: string | null };
+  const request = task.client_requests as {
+    title: string;
+    description: string | null;
+    client_profile_id: string;
+  };
+
+  const assignedTalent = task.talent_profiles as { user_id: string } | null;
 
   const { data: milestones } = await supabase
     .from("task_milestones")
@@ -44,11 +53,9 @@ export default async function ClientTaskDetailPage({
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Badge variant={task.lifecycle_status === "active" ? "success" : "muted"}>
-          {task.lifecycle_status}
-        </Badge>
-      </div>
+      <Badge variant={task.lifecycle_status === "active" ? "success" : "muted"}>
+        {task.lifecycle_status}
+      </Badge>
 
       {request.description && (
         <div className="card-surface p-6">
@@ -79,7 +86,23 @@ export default async function ClientTaskDetailPage({
             ))}
           </ul>
         )}
+        <AddMilestoneForm taskId={taskId} />
       </section>
+
+      <TaskActions
+        taskId={taskId}
+        clientProfileId={request.client_profile_id}
+        lifecycleStatus={task.lifecycle_status}
+        milestones={milestones ?? []}
+      />
+
+      {task.lifecycle_status === "completed" && assignedTalent?.user_id && (
+        <ReviewForm
+          revieweeId={assignedTalent.user_id}
+          referenceType="task"
+          referenceId={taskId}
+        />
+      )}
     </div>
   );
 }

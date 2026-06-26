@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { sendMessage } from "@/lib/messaging/actions";
+import { useEffect, useState, useTransition } from "react";
+import { sendMessage, getMessagesForThread } from "@/lib/messaging/actions";
+import { createClient } from "@/lib/supabase/browser";
 import { formatDate } from "@/lib/utils";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { Button } from "@/components/ui/Button";
@@ -32,8 +33,41 @@ export function MessagesPanel({
   selectedThreadId = null,
 }: MessagesPanelProps) {
   const [activeThread, setActiveThread] = useState(selectedThreadId ?? threads[0]?.id ?? null);
-  const [messages] = useState(initialMessages);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [body, setBody] = useState("");
+  const [, startTransition] = useTransition();
   const active = threads.find((t) => t.id === activeThread);
+
+  useEffect(() => {
+    if (!activeThread) return;
+
+    startTransition(async () => {
+      const data = await getMessagesForThread(activeThread);
+      setMessages(data as Message[]);
+    });
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`messages-${activeThread}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `thread_id=eq.${activeThread}`,
+        },
+        async () => {
+          const data = await getMessagesForThread(activeThread);
+          setMessages(data as Message[]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [activeThread]);
 
   if (threads.length === 0) {
     return (
@@ -42,6 +76,15 @@ export function MessagesPanel({
         description="Conversations with talents and Innomium will appear here."
       />
     );
+  }
+
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    if (!activeThread || !body.trim()) return;
+    await sendMessage(activeThread, body);
+    setBody("");
+    const data = await getMessagesForThread(activeThread);
+    setMessages(data as Message[]);
   }
 
   return (
@@ -65,7 +108,7 @@ export function MessagesPanel({
         <h2 className="mb-4 font-semibold text-text">{active?.subject ?? "Messages"}</h2>
         <div className="flex-1 space-y-3 overflow-y-auto">
           {messages.length === 0 ? (
-            <p className="text-sm text-text-muted">Select a thread to view messages.</p>
+            <p className="text-sm text-text-muted">No messages in this thread yet.</p>
           ) : (
             messages.map((msg) => (
               <div key={msg.id} className="rounded-lg bg-surface-soft px-3 py-2 text-sm">
@@ -79,14 +122,11 @@ export function MessagesPanel({
           )}
         </div>
         {activeThread && (
-          <form
-            action={async (formData) => {
-              await sendMessage(activeThread, formData.get("body") as string);
-            }}
-            className="mt-4 flex gap-2"
-          >
+          <form onSubmit={handleSend} className="mt-4 flex gap-2">
             <input
               name="body"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
               required
               placeholder="Write a message…"
               className="flex-1 rounded-lg border border-border bg-bg-pure px-3 py-2 text-sm"

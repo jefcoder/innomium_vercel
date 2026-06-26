@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { ReportModerationForm } from "@/components/admin/ReportModerationForm";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate } from "@/lib/utils";
@@ -31,6 +32,7 @@ export default async function AdminReportsPage() {
                 <p className="mt-2 text-sm text-text-muted">{report.description}</p>
               )}
               <p className="mt-2 text-xs text-text-soft">{formatDate(report.created_at)}</p>
+              {report.status === "submitted" && <ReportModerationForm reportId={report.id} />}
             </li>
           ))}
         </ul>

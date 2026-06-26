@@ -26,3 +26,15 @@ export async function getLeaderboard(competitionId: string) {
     .order("rank", { ascending: true });
   return data ?? [];
 }
+
+export async function getLiveDailyScores(competitionId: string, date?: string) {
+  const supabase = await createClient();
+  const scoreDate = date ?? new Date().toISOString().slice(0, 10);
+  const { data } = await supabase
+    .from("competition_daily_scores")
+    .select("*, competition_participants(talent_profile_id)")
+    .eq("competition_id", competitionId)
+    .eq("score_date", scoreDate)
+    .order("score", { ascending: false });
+  return data ?? [];
+}
